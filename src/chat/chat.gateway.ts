@@ -75,19 +75,27 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   @SubscribeMessage('send')
   async handleMessage(@MessageBody() data: Partial<Message>, @ConnectedSocket() client: Socket) {
-    if (!data.senderId || !data.receiverId || !data.content) {
-      this.logger.warn('Invalid message payload received:', JSON.stringify(data));
+    const authenticatedUserId = (client as any).userId as string | undefined;
+    if (!authenticatedUserId) {
+      this.logger.warn('Socket not authenticated. Cannot send message.');
       return;
     }
-  
-    data.timestamp = new Date();
-    await this.chatService.create(data);
+
+    if (!data?.receiverId || !data?.content) {
+      this.logger.warn(`Invalid message payload received: ${JSON.stringify(data)}`);
+      return;
+    }
+
+    data.senderId = authenticatedUserId;
+    const message = await this.chatService.create(data);
+    this.logger.log(`message: ${message}`);
     this.logger.log(`user: ${data.senderId} sent message to user: ${data.receiverId}`);
-    this.sendMSGtoReceiver(data);
+    // Emit the saved message (with timestamp/id) to the receiver
+    this.sendMSGtoReceiver(message);
   }
   private async sendMSGtoReceiver(message: Partial<Message>) {
 
-    this.logger.log(`redis client: ${message}`);
+    this.logger.log(`redis client: ${JSON.stringify(message)}`);
     const recipientSocketId = await this.redisClient.get(`user:${message.receiverId}`);
     if (recipientSocketId) {
       this.server.to(recipientSocketId).emit('receive', message);
@@ -99,9 +107,16 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   private extractTokenFromHandshake(client: Socket): string | null {
     try {
+      // Prefer token via Socket.IO auth payload
       if (client.handshake.auth && client.handshake.auth.token) {
         return client.handshake.auth.token as string;
       }
+      // Fallback: token via query string ?token=...
+      const queryToken = (client.handshake.query?.token as string) || null;
+      if (queryToken) {
+        return queryToken;
+      }
+      // Lastly: Authorization header
       const authHeader = client.handshake.headers.authorization;
       if (!authHeader) {
         return null;

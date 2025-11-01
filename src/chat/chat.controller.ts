@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Logger, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Logger, UseGuards, BadRequestException, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { Message } from './schemas/message.schema';
@@ -16,6 +16,7 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Lista delle chat', type: [Message] })
   @Get(':userId')
   async findAllChatsByUser(@Param('userId') userId: string) {
+    this.logger.log(`Get all msgs of userId: ${userId}`);
     return this.chatService.findAllChatsByUser(userId);
   }
 
@@ -23,7 +24,15 @@ export class ChatController {
   @ApiBody({ type: Message })
   @ApiResponse({ status: 201, description: 'Messaggio creato', type: Message })
   @Post()
-  async createMsg(@Body() msg: Partial<Message>): Promise<Message> {
+  async createMsg(@Body() msg: Partial<Message>, @Req() req: any): Promise<Message> {
+    const user = req?.user;
+    if (!user?.uid) {
+      throw new BadRequestException('Missing authenticated user');
+    }
+    if (!msg?.receiverId || !msg?.content) {
+      throw new BadRequestException('receiverId and content are required');
+    }
+    msg.senderId = user.uid;
     return this.chatService.create(msg);
   }
 }

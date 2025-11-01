@@ -72,8 +72,8 @@ npm run start:dev
 ```bash
 docker-compose up --build
 ```
-- The API will be available at `http://localhost:3000`
-- Swagger docs at `http://localhost:3000/api`
+- The API will be available at `http://localhost:3001`
+- Swagger docs at `http://localhost:3001/api`
 
 ## Usage
 
@@ -116,10 +116,10 @@ Use the `idToken` as a Bearer token in the `Authorization` header for all reques
   ```
 
 ### WebSocket API
-Connect via Socket.IO to `ws://localhost:3000` with authentication:
+Connect via Socket.IO to `ws://localhost:3001` with authentication:
 
 ```js
-const socket = io('http://localhost:3000', {
+const socket = io('http://localhost:3001', {
   auth: { token: '<idToken>' }
 });
 
@@ -148,7 +148,7 @@ socket.on('receive', (msg) => {
 ```
 
 ## Swagger Documentation
-Interactive API docs are available at: [http://localhost:3000/api](http://localhost:3000/api)
+Interactive API docs are available at: [http://localhost:3001/api](http://localhost:3001/api)
 
 ---
 

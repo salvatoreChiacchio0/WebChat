@@ -6,12 +6,13 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - MONGODB_URI=mongodb://mongo:27017/chatdb
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json
       - PORT=3000
     depends_on:
@@ -19,10 +20,12 @@ services:
       - redis
     networks:
       - app-network
-    volumes:
-      - .:/usr/src/app
-      - ./firebase:/usr/src/app/firebase:ro
-    command: npm run start:dev
+    # Rimuovo i volumi che sovrascrivevano /usr/src/app
+    # volumes:
+    #   - .:/usr/src/app
+    #   - ./firebase:/usr/src/app/firebase:ro
+    # Uso il CMD dell'immagine: node dist/main.js
+    # command: npm run start:dev
 
   mongo:
     image: mongo:6
